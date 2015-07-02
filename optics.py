@@ -254,11 +254,16 @@ class optics(dataobj):
     _p.grid(True)
     _p.legend()
 
-  def plotap(t,ap,nlim=30,ref=7,newfig=True,**nargs):
-    t.ss=ap.s
-    t.n1=ap.n1
-    p=t.plot(x='ss',yl='n1',newfig=newfig,**nargs)
-    p.figure.gca().plot(t.ss,t.ss*0+ref)
+  def plotap(self,ap,nlim=30,ref=7,newfig=True,**nargs):
+    """plot n1 versus s
+    self= optics e.g. optics.open('twiss_ir5b1.tfs')
+    ap  = corresponding aperture fiel e.g. optics.open('ap_ir5b1.tfs')
+    ref = limit for n1 indicated as vertical line
+    """
+    self.ss=ap.s
+    self.n1=ap.n1
+    p=self.plot(x='ss',yl='n1',newfig=newfig,**nargs)
+    p.figure.gca().plot(self.ss,self.ss*0+ref)
     p.figure.gca().set_ylim(0,nlim)
     p.figure.canvas.draw()
     return p
