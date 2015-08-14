@@ -18,7 +18,7 @@ from numpy.linalg import inv
 
 from utils import mystr as _mystr
 from utils import pyname
-from namedtuple import namedtuple
+from collections import namedtuple
 from pydataobj import dataobj
 import tfsdata
 
@@ -190,19 +190,22 @@ class optics(dataobj):
 
   def plot(self,yl='',yr='',x='s',idx=slice(None),
       clist='k r b g c m',lattice=True,newfig=True,pre=None,
+           autoupdate=False,
           ):
     out=qdplot(self,x=x,yl=yl,yr=yr,idx=idx,lattice=lattice,newfig=newfig,clist=clist,pre=pre)
     self._plot=out
+    if autoupdate:
+        self._plot.wx_autoupdate()
 #    self._target.append(out)
     return self
 
   def plotbeta(self,**nargs):
     return self.plot('betx bety','dx dy',**nargs)
-  def plotsigma(self,emit=2.5e-6/7000*0.938,deltap=1.1e-4):
+  def plotsigma(self,emit=2.5e-6/7000*0.938,deltap=1.1e-4,**nargs):
     self.sigx =sqrt(self.betx*emit)*1000
     self.sigy =sqrt(self.bety*emit)*1000
     self.sigdx=self.dx*deltap*1000
-    self.plot('sigx sigy sigdx')
+    self.plot('sigx sigy sigdx',**nargs)
     ya,yb=pl.ylim()
     pl.twinx()
     bmax=max(self.betx.max(),self.bety.max())
@@ -217,7 +220,7 @@ class optics(dataobj):
 #    return self.plot('x y','dx dy',**nargs)
     return self.plot('x y',**nargs)
 
-  def plottune(self,newfig=True):
+  def plottune(self,newfig=True,**nargs):
     q4x,q3x,q2x,q1x,q0x=scipy.polyfit(self.deltap,self.q1,4)
     q4y,q3y,q2y,q1y,q0y=scipy.polyfit(self.deltap,self.q2,4)
     qx=(self.q1-self.q1.round())[abs(self.deltap)<1E-15][0]
@@ -232,8 +235,8 @@ class optics(dataobj):
     _p.title(r"Tune vs $\delta$")
     _p.xlabel("$\delta$")
     _p.ylabel("Fractional tune")
-    _p.plot(self.deltap,self.q1-self.q1.round(),label=fmtx)
-    _p.plot(self.deltap,self.q2-self.q2.round(),label=fmty)
+    _p.plot(self.deltap,self.q1-self.q1.round(),label=fmtx,**nargs)
+    _p.plot(self.deltap,self.q2-self.q2.round(),label=fmty,**nargs)
     #_p.text(0.0,qx,r"$Q_x$")
     #_p.text(0.0,qy,r"$Q_y$")
     _p.grid(True)
@@ -241,42 +244,48 @@ class optics(dataobj):
     self._plot=_p.gcf()
     return t
 
-  def plotbetabeat(self,t1,dp='0.0003'):
+  def plotbetabeat(self,t1,dp='0.0003',**nargs):
     _p.title(r"$\rm{Beta beat: 1 - \beta(\delta=%s)/\beta(\delta=0)}$" % dp)
     _p.ylabel(r"$\Delta\beta/\beta$")
     _p.xlabel(r"$s$")
-    _p.plot(self.s,1-t1.betx/self.betx,label=r'$\Delta\beta_x/\beta_x$')
-    _p.plot(self.s,1-t1.bety/self.bety,label=r'$\Delta\beta_y/\beta_y$')
+    _p.plot(self.s,1-t1.betx/self.betx,
+            label=r'$\Delta\beta_x/\beta_x$',**nargs)
+    _p.plot(self.s,1-t1.bety/self.bety,
+            label=r'$\Delta\beta_y/\beta_y$',**nargs)
     _p.grid(True)
     _p.legend()
     self._plot=_p.gcf()
     return t
 
-  def plotw(self,lbl=''):
+  def plotw(self,lbl='',**nargs):
     _p.title(r"Chromatic function: %s"%lbl)
   # _p.ylabel(r"$w=(\Delta\beta/\beta)/\delta$")
     _p.ylabel(r"$w$")
     _p.xlabel(r"$s$")
-    _p.plot(self.s,self.wx,label=r'$w_x$')
-    _p.plot(self.s,self.wy,label=r'$w_y$')
+    _p.plot(self.s,self.wx,label=r'$w_x$',**nargs)
+    _p.plot(self.s,self.wy,label=r'$w_y$',**nargs)
     _p.grid(True)
     _p.legend()
     self._plot=_p.gcf()
     return self
 
-  def plotap(t,ap=None,nlim=30,ref=7,newfig=True,**nargs):
+  def plotap(self,ap=None,nlim=30,ref=7,newfig=True,**nargs):
+    """plot n1 versus s
+    self  : optics e.g. optics.open('twiss_ir5b1.tfs')
+    ap : corresponding aperture file e.g. optics.open('ap_ir5b1.tfs')
+    ref: limit for n1 indicated as vertical line
+    """
     if ap is None:
-        apfn=t.filename.replace('twiss','ap')
+        apfn=self.filename.replace('twiss','ap')
         ap=optics.open(apfn)
-    t.ss=ap.s
-    t.n1=ap.n1
-    t=t.plot(x='ss',yl='n1',newfig=newfig,**nargs)
-    p=t._plot
-    p.figure.gca().plot(t.ss,t.ss*0+ref)
+    self.ss=ap.s
+    self.n1=ap.n1
+    self.plot(x='ss',yl='n1',newfig=newfig,**nargs)
+    p=self._plot #plot is stored in _plot
+    p.figure.gca().plot(self.ss,self.ss*0+ref)
     p.figure.gca().set_ylim(0,nlim)
     p.figure.canvas.draw()
-    t._plot=p
-    return t
+    return self
 
   def mk_betamax(self):
     self.betxmax=zeros_like(self.betx)
@@ -625,25 +634,32 @@ class optics(dataobj):
 
 
 
-lglabel={
-    'betx':    r'$\beta_x$',
-    'bety':    r'$\beta_y$',
-    'dx':    r'$D_x [m]$',
-    'dy':    r'$D_y [m]$',
-    'mux':    r'$\mu_x$',
-    'muy':    r'$\mu_y$',
-    'Ax':     '$A_x$',
-    'Ay':     '$A_y$',
-    'Bx':     '$B_x$',
-    'By':     '$B_y$',
-    'wx':     '$w_x$',
-    'wy':     '$w_y$',
-    'sigx':    r'$\sigma_x=\sqrt{\beta_x \epsilon}$',
-    'sigy':    r'$\sigma_y=\sqrt{\beta_y \epsilon}$',
-    'sigdx':    r'$\sigma_{D_x}=\sqrt{D_x \delta}$',
-    }
 
-axlabel={
+
+def _mylbl(d,x): return d.get(x,r'$%s$'%x)
+
+
+class qdplot(object):
+  lglabel={
+      'betx':    r'$\beta_x$',
+      'bety':    r'$\beta_y$',
+      'dx':    r'$D_x [m]$',
+      'dy':    r'$D_y [m]$',
+      'mux':    r'$\mu_x$',
+      'muy':    r'$\mu_y$',
+      'Ax':     '$A_x$',
+      'Ay':     '$A_y$',
+      'Bx':     '$B_x$',
+      'By':     '$B_y$',
+      'wx':     '$w_x$',
+      'wy':     '$w_y$',
+      'sigx':    r'$\sigma_x=\sqrt{\beta_x \epsilon}$',
+      'sigy':    r'$\sigma_y=\sqrt{\beta_y \epsilon}$',
+      'sigdx':    r'$\sigma_{D_x}=D_x \delta$',
+      'n1':        r'Aperture [$\sigma$]',
+      }
+
+  axlabel={
     's':       r'$s [m]$',
     'ss':       r'$s [m]$',
     'betx':    r'$\beta [m]$',
@@ -657,13 +673,8 @@ axlabel={
     'sigx':     r'$\sigma$ [mm]',
     'sigy':     r'$\sigma$ [mm]',
     'sigdx':     r'$\sigma$ [mm]',
+    'n1':        r'Aperture [$\sigma$]',
     }
-
-
-def _mylbl(d,x): return d.get(x,r'$%s$'%x)
-
-
-class qdplot(object):
   autoupdate=[]
   def wx_autoupdate(self):
     cls=self.__class__
@@ -677,13 +688,16 @@ class qdplot(object):
   @classmethod
   def _wx_callback(cls,*args):
     out=[]
-    for pl in cls.autoupdate:
-      res=pl.update()
-      if res:
-        out.append(res)
+    for ppp in cls.autoupdate:
+      if pl.fignum_exists(ppp.figure.number):
+        res=ppp.update()
+        if res:
+          out.append(res)
+      else:
+        cls.autoupdate.remove(ppp)
     if out and hasattr(cls,'on_update'):
-      for pl in out:
-        cls.on_update(pl)
+      for ppp in out:
+        cls.on_update(ppp)
     wx.WakeUpIdle()
   @classmethod
   def on_updated(cls,fun):
@@ -710,7 +724,7 @@ class qdplot(object):
     else:
       self.figure=newfig
       self.figure.clf()
-    if lattice is not None:
+    if lattice:
       self.lattice=self._new_axes()
 #      self.lattice.set_autoscale_on(False)
       self.lattice.yaxis.set_visible(False)
@@ -740,7 +754,7 @@ class qdplot(object):
           sharex=ax, frameon=False)
     else :
       #adjust plot dimensions
-      out=self.figure.add_axes([.12,.10,.6,.8])
+      out=self.figure.add_axes([.17,.12,.6,.8])
     return out
 
   def __repr__(self):
@@ -805,7 +819,7 @@ class qdplot(object):
       for i in self.yr:
         self._column(i,self.right,self.color[i])
     ca=self.figure.gca()
-    ca.set_xlabel(_mylbl(axlabel,self.x))
+    ca.set_xlabel(_mylbl(self.axlabel,self.x))
     ca.set_xlim(min(self.xaxis[self.idx]),max(self.xaxis[self.idx]))
     self.figure.legend(self.lines,self.legends,'upper right')
     ca.grid(True)
@@ -870,11 +884,14 @@ class qdplot(object):
   def _column(self,name,sp,color):
     fig,s=self.figure,self.xaxis
     y=self.ont(name)[self.idx]
-    bxp,=sp.plot(s,y,color,label=_mylbl(lglabel,name))
-    sp.set_ylabel(_mylbl(axlabel,name))
+    bxp,=sp.plot(s,y,color,label=_mylbl(self.lglabel,name))
+    sp.set_ylabel(_mylbl(self.axlabel,name))
     self.lines.append(bxp)
-    self.legends.append(_mylbl(lglabel,name))
+    self.legends.append(_mylbl(self.lglabel,name))
     sp.autoscale_view()
+  def savefig(self,name):
+    self.figure.savefig(name)
+    return self
 
 
 
