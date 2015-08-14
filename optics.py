@@ -214,7 +214,8 @@ class optics(dataobj):
     return t
 
   def plotcross(self,**nargs):
-    return self.plot('x y','dx dy',**nargs)
+#    return self.plot('x y','dx dy',**nargs)
+    return self.plot('x y',**nargs)
 
   def plottune(self,newfig=True):
     q4x,q3x,q2x,q1x,q0x=scipy.polyfit(self.deltap,self.q1,4)
@@ -261,7 +262,7 @@ class optics(dataobj):
     _p.grid(True)
     _p.legend()
     self._plot=_p.gcf()
-    return t
+    return self
 
   def plotap(t,ap=None,nlim=30,ref=7,newfig=True,**nargs):
     if ap is None:
