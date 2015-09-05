@@ -158,6 +158,8 @@ class optics(dataobj):
   def dumpstr(self,rows=None,cols=None):
     return '\n'.join(self.dumplist(rows=rows,cols=cols))
   def show(self,rows=None,cols=None):
+    """show *cols* for *rows*
+       example: oo.show('IP6','betx bety')"""
     print self.dumpstr(rows=rows,cols=cols)
   def twissdata(self,location,data):
     idx=_n.where(self.pattern(location))[0][-1]
@@ -514,6 +516,11 @@ class optics(dataobj):
         t[vn]=_n.concatenate([v[name:],v[:name]])
     return t
   def select(t,a,b,shift=True):
+    """select part of the optics *t* and return
+    it as another optics object. The part is given
+    by the two element names *a* and *b* and shift 
+    is a shift of the s position by *shift*.
+    example: oo.select('S.CELL.56.B1','E.CELL.56.B1')"""
     if type(a) is str:
       a=_n.where(t.name==a.upper())[0][0]
     if type(b) is str:
