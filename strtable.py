@@ -1,3 +1,5 @@
+"""module to plot the squeeze tables"""
+
 import re
 
 import matplotlib.pyplot as pl
@@ -17,7 +19,7 @@ class StrTable(dataobj):
     return obj
   def get_vars(self,reg):
     rxp=re.compile(reg)
-    return sorted(l for l in self.keys() if rxp.match(l))
+    return sorted(l for l in self.keys() if rxp.search(l))
   def get_kq(self,n):
     return self.get_vars(r'kq[xt]?l?%da?\.'%n)
   def get_phases(self):
@@ -123,9 +125,49 @@ class StrTable(dataobj):
         self.plot_2in1(n,n1,n2,x=x,sign=True)
     #pl.subplot(3,4,12)
     #self.plot_ipbeta(n1,n2,x=x)
-#    pl.tight_layout()
+    pl.tight_layout()
     self.xvar=x
     return self
+  def _plot_beta(self,reg,n1=0,n2=None,lim=None,s=(3,4,1),lbl=''):
+    """plot beta function for squeeze points
+    *n1* to *n2* for regular expression *reg*
+    and in subplot *s*, where *s* is a tuple"""
+    if len(self.get_vars(reg))>0:
+      s1,s2,s3=s
+      pl.subplot(s1,s2,s3)
+      pl.cla()
+      for k in self.get_vars(reg):
+        pl.plot(self[k][n1:n2],label=k)
+      if lim!=None:
+        for ll in lim:
+          if n2==None: n2=len(self[self.get_vars(reg)[0]])#n2=tablelength
+          pl.plot([n1,n2],[lim,lim],'k-')
+      pl.ylabel(lbl)
+      pl.legend(loc='best')
+  def plot_squeeze_ir6(self,n1=0,n2=None,x=None,title='squeeze'):
+    self.plot_squeeze(n1=n1,n2=n2,x=x,title=title)
+    self._plot_beta('b[xy]dumpb[12]',n1=n1,n2=n2,s=(3,4,1),lbl=r'$\beta_{\rm dump}$ [m]')
+    self._plot_beta('betxmkdb[12]',n1=n1,n2=n2,lim=[380],s=(3,4,4),lbl=r'$\beta_{\rm MKD}$ [m]')
+    self._plot_beta('bet[xy]tcdqb[12]',n1=n1,n2=n2,lim=[160,495],s=(3,4,5),lbl=r'$\beta_{\rm TCDQ}$ [m]')
+    self._plot_beta('bet[xy]_ip[15]',n1=n1,n2=n2,s=(3,4,12),lbl=r'$\beta_{\rm IP[15]}$ [m]')
+  def plot_betip(self,n1=0,n2=None,title='Twiss @ IP'):
+    fig=pl.figure(title,figsize=(12,4))
+    pl.subplot(1,3,1)
+    for k in self.get_vars('bet[xy]ip.b[12]'):
+      pl.plot(self[k][n1:n2],label=k)
+      pl.ylabel(r'$\beta_{\rm IP}$ [m]')
+      pl.legend(loc='best')
+    pl.subplot(1,3,2)
+    for k in self.get_vars('alf[xy]ip.b[12]'):
+      pl.plot(self[k][n1:n2],label=k)
+      pl.ylabel(r'$\alpha_{\rm IP}$ [m]')
+      pl.legend(loc='best')
+    pl.subplot(1,3,3)
+    for k in self.get_vars('dxip.b[12]'):
+      pl.plot(self[k][n1:n2],label=k)
+      pl.ylabel(r'$D_{x,\rm IP}$ [m]')
+      pl.legend(loc='best')
+    pl.tight_layout()
   def plot_betsqueeze(self,n1=0,n2=None,figname=None):
     x=self.get_vars('betxip')[0]
     if figname is None:
@@ -145,7 +187,7 @@ class StrTable(dataobj):
       self.plot_2in1(n,n1,n2,x=x,sign=True)
     pl.subplot(3,4,12)
     self.plot_phase(n1,n2,x=x)
-#    pl.tight_layout()
+    pl.tight_layout()
     self.xvar=x
     return self
   def plot_knobs(self,n1=0,n2=None,figname=None,scales=[1,1]):
