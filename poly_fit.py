@@ -27,6 +27,10 @@ def solveconst(A,b,C,d):
   return sol[:nx]
 
 def makeA(x,N):
+  """return [1,x0,x0**2,..,x0**N]
+            [1,x1,x1**2,..,x1**N]
+            ...
+  """
   return column_stack([x**i for i in range(N+1)])
 
 def makeAp(x,N):
@@ -45,6 +49,38 @@ def poly_print(p,x='x',power='**',mul='*'):
   return ''.join(res)
 
 def poly_fit(N,xdata,ydata,x0=[],y0=[],xp0=[],yp0=[],xpp0=[],ypp0=[]):
+  """least square polynomial fit with constraints
+  using Lagrangian multipliers.
+  Parameters
+  ----------
+  xdata: n
+  ydata: n
+  N    : Degree of the fitting polynomial.
+  x0,y0    : Fixed points.
+  xp0,yp0  : Derivative at fixed points.
+  xpp0,ypp0: Second derivative at fixed points.
+
+  Returns
+  -------
+  p: Polynomial coefficients, highest power first.
+  
+  Notes
+  -----
+  Solves the least square problem:
+    minimize   || A p - b ||_2
+    subject to Cp-d=0
+  with:
+  p: polynomial
+  A: matrix of [xdata**N ... xdata 1]
+  b: ydata
+  C: matrix of fixed points z=x0,xp0,xpp0
+     with C=[C0,C1,C2
+            [C2]
+     with C0=[x0**N     ... x0 1]
+          C1=[xp0**N-1  ... 1  0]
+          C2=[xpp0**N-2 ... 0  0]
+  d: fixed points with d=[y0,yp0,ypp0]
+  """
   A=makeA(xdata,N)
   b=ydata
   C0=makeA(array(x0),N)
