@@ -1,18 +1,23 @@
 from numpy import *
 
 def solveconst(A,b,C,d):
-  """Solve constrained least square problem using Lagrange multipliers
-  min(|| A x - b ||_2) and Cx=b
-  x: n
-  A: m x n
-  b: m
-  C: l x n
-  d: l
-
-  L = x A.T A x - 2 A.T x + b.T b + l C x
-  Equivalent to:
+  """Solve constrained least square problem
+    minimize   || A x - b ||_2
+    subject to Cx-d=0
+    x: n
+    A: m x n
+    b: m
+    C: l x n
+    d: l
+  using Lagrange multiplier
+    L(x,l) = x.T A.T A x - 2 b.T A x + b.T b + l.T C x-l.T d
+  where l is called the Lagrange multiplier. 
+  The Kharush-Kuhn-Tucker equations
+    nabla_x L(x,l) = 0, nabla_l L(x,l)=0
+  yield:
   (A.T A   C.T )  (x)  = (A.T b)
   (C       0   )  (l)  = (d)
+  see http://floatium.stanford.edu/ee263/notes/gradient-lagrange.pdf
   """
   nl,nx=C.shape
   m=hstack([dot(A.T,A),C.T])
