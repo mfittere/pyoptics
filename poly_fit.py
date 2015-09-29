@@ -42,9 +42,11 @@ def makeApp(x,N):
   return column_stack(z)
 
 def poly_val(p,x):
+  """evaluate polynomial *p* at *x*"""
   return sum([p[i]*x**i for i in range(len(p))],axis=0)
 
 def poly_print(p,x='x',power='**',mul='*'):
+  if x==None: x='x'
   res=['%+.10e%s%s%s%d'%(p[i],mul,x,power,i) for  i in range(len(p))]
   return ''.join(res)
 
@@ -74,8 +76,7 @@ def poly_fit(N,xdata,ydata,x0=[],y0=[],xp0=[],yp0=[],xpp0=[],ypp0=[]):
   A: matrix of [xdata**N ... xdata 1]
   b: ydata
   C: matrix of fixed points z=x0,xp0,xpp0
-     with C=[C0,C1,C2
-            [C2]
+     with C=[C0,C1,C2]
      with C0=[x0**N     ... x0 1]
           C1=[xp0**N-1  ... 1  0]
           C2=[xpp0**N-2 ... 0  0]
