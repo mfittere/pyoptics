@@ -184,9 +184,9 @@ class StrTable(dataobj):
 
   def plot_squeeze(self,n1=0,n2=None,x=None,title='squeeze'):
     ir=self.get_vars('betxip')[0].split('ip')[1].split('b1')[0]
+    self._plot_squeeze(n1=n1,n2=n2,x=x,title=title)
     if ir=='6': self._plot_squeeze_ir6(n1=n1,n2=n2,x=x,title=title)
     if ir=='4': self._plot_squeeze_ir4(n1=n1,n2=n2,x=x,title=title)
-    else: self._plot_squeeze(n1=n1,n2=n2,x=x,title=title)
   def _plot_squeeze(self,n1=0,n2=None,x=None,title='squeeze'):
     fig=pl.figure(title,figsize=(16,12))
 #    fig.canvas.mpl_connect('button_release_event',self.button_press)
@@ -211,13 +211,11 @@ class StrTable(dataobj):
     self.xvar=x
     return self
   def _plot_squeeze_ir4(self,n1=0,n2=None,x=None,title='squeeze'):
-    self._plot_squeeze(n1=n1,n2=n2,x=x,title=title)
     pl.subplot(3,4,1)
     self._plot_beta('bet[xy]ip4b[12]',n1=n1,n2=n2,lbl=r'$\beta_{\rm IP4}$ [m]')
     pl.subplot(3,4,2)
-    self._plot_beta('dp*[x]ip4b[12]',n1=n1,n2=n2,lbl=r'$dx_{\rm IP4}$ [m], dpx_{\rm IP4}$ [m]')
+    self._plot_beta('dp*[x]ip4b[12]',n1=n1,n2=n2,lbl=r'$d_{x,\rm IP4}$ [m], $d_{px,\rm IP4}$ [m]')
   def _plot_squeeze_ir6(self,n1=0,n2=None,x=None,title='squeeze'):
-    self._plot_squeeze(n1=n1,n2=n2,x=x,title=title)
     pl.subplot(3,4,1)
     self._plot_beta('b[xy]dumpb[12]',n1=n1,n2=n2,lim=[5012,3955,3698],lbl=r'$\beta_{\rm dump}$ [m]')
     pl.subplot(3,4,4)
