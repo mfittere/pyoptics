@@ -47,21 +47,21 @@ class mtwiss:
     cx=gamma(ax,bx);cy=gamma(ay,by);
     self.ax=ax;self.bx=bx;self.cx=cx;
     self.ay=ay;self.by=by;self.cy=cy;
-    self.mat=matrix([[cx,ax,0,0,0,0],[ax,bx,0,0,0,0],[0,0,cy,ay,0,0],[0,0,ay,by,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]])
+    self.mat=matrix(m)
   @classmethod
   def from_matrix(cls,m):
     cx=m[0,0];ax=m[1,0];bx=m[1,1]
     cy=m[2,2];ay=m[3,2];by=m[3,3]
     test_tw(ax,bx,cx,ay,by,cy)
+    print 'a'  
     return cls(ax,bx,ay,by)
-  def __repr__(self):
-    return repr(self.mat)
   def getT(self):
-    return mtwiss.from_matrix(self.mat.getT())
-  def getI(self):
-    return mtwiss.from_matrix(self.mat.getI())
-  def trans(self,r):
-    """transport twiss parameters by transfer matrix r"""
-    a1=((r.getT()).getI())*self.mat*(r.getI())
-    ax,bx,ay,by=m_to_tw(a1)
-    return mtwiss(ax,bx,ay,by)
+    t=mtwiss.from_matrix(self.mat.getT())
+    t=self.mat.getT()
+    t.ax,self.bx,self.ay,self.by=m_to_tw(m)
+    return self
+#  def trans(self,r):
+#    """transport twiss parameters by transfer matrix r"""
+#    a1=((r.getT()).getI())*self*(r.getI())
+#    ax,bx,ay,by=m_to_tw(a1)
+#    return mtwiss(ax,bx,ay,by)
