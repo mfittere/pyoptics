@@ -900,7 +900,11 @@ class qdplot(object):
     self.figure.savefig(name)
     return self
 
+mycolors=list('rgbcm')
 
+def colorrotate():
+  c=mycolors.pop(0);mycolors.append(c)
+  return c
 
 class Footprint(object):
 #class Footprint(ObjDebug):
