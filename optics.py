@@ -10,7 +10,8 @@ except:
 
 import matplotlib.pyplot as _p
 import matplotlib.pyplot as pl
-import numpy as _n
+import matplotlib.delaunay
+import numpy as _np
 import scipy
 from numpy import sqrt, sum, array, sin, cos, dot, pi,cosh,sinh,tan,arctan
 from numpy import zeros_like, zeros
@@ -130,15 +131,15 @@ class optics(dataobj):
   def pattern(self,regexp):
     c=re.compile(regexp,flags=re.IGNORECASE)
     out=[c.search(n) is not None for i,n in enumerate(self.name)]
-    return _n.array(out)
+    return _np.array(out)
   __floordiv__=pattern
 
   def dumplist(self,rows=None,cols=None):
     if rows is None:
-      rows=_n.ones(len(self.name),dtype=bool)
+      rows=_np.ones(len(self.name),dtype=bool)
     elif isinstance(rows,str):
       rows=self.pattern(rows)
-    rows=_n.where(rows)[0]
+    rows=_np.where(rows)[0]
 
     if cols is None:
       cols=''
@@ -162,7 +163,7 @@ class optics(dataobj):
        example: oo.show('IP6','betx bety')"""
     print self.dumpstr(rows=rows,cols=cols)
   def twissdata(self,location,data):
-    idx=_n.where(self.pattern(location))[0][-1]
+    idx=_np.where(self.pattern(location))[0][-1]
     out=dict(location=location)
     for name in data.split():
       vec=self.__dict__.get(name)
@@ -175,14 +176,14 @@ class optics(dataobj):
   def range(self,pat1,pat2):
     """ return a mask relative to range"""
     try:
-      id1=_n.where(self.pattern(pat1))[0][-1]
+      id1=_np.where(self.pattern(pat1))[0][-1]
     except IndexError:
       raise ValueError,"%s pattern not found in table"%pat1
     try:
-      id2=_n.where(self.pattern(pat2))[0][-1]
+      id2=_np.where(self.pattern(pat2))[0][-1]
     except IndexError:
       raise ValueError,"%s pattern not found in table"%pat2
-    out=_n.zeros(len(self.name),dtype=bool)
+    out=_np.zeros(len(self.name),dtype=bool)
     if id2>id1:
       out[id1:id2+1]=True
     else:
@@ -211,8 +212,8 @@ class optics(dataobj):
     ya,yb=pl.ylim()
     pl.twinx()
     bmax=max(self.betx.max(),self.bety.max())
-    rng=range(0,int(_n.ceil(_n.log10(bmax)))+1)
-    bval=_n.array([n*10**dd for dd in rng for n in [1,2,5] ])
+    rng=range(0,int(_np.ceil(_np.log10(bmax)))+1)
+    bval=_np.array([n*10**dd for dd in rng for n in [1,2,5] ])
     bval=bval[bval<bmax]
     pl.ylim(ya,yb)
     self._plot=_p.gcf()
@@ -321,7 +322,7 @@ class optics(dataobj):
         name=self.name[i].split('..')[0]
         if bufname!=name:
           if bufname!='':
-            idx=_n.where(self.name==bufname)[0][0]
+            idx=_np.where(self.name==bufname)[0][0]
             self.betxmax[idx]=max(bufx)
             self.betymax[idx]=max(bufy)
           bufx=[self.betx[i]]
@@ -454,20 +455,20 @@ class optics(dataobj):
     self.Ay=bety*self.wy*sin(2*pi*self.phiy)
     k1l=self.k1l
     k2l=self.k2l
-    self.qp1x = 1./4/pi*_n.cumsum(-betx*k1l)
-    self.qp1y = 1./4/pi*_n.cumsum( bety*k1l)
-    self.qp2x = 1./4/pi*_n.cumsum( betx*k2l*dx)
-    self.qp2y = 1./4/pi*_n.cumsum(-bety*k2l*dx)
+    self.qp1x = 1./4/pi*_np.cumsum(-betx*k1l)
+    self.qp1y = 1./4/pi*_np.cumsum( bety*k1l)
+    self.qp2x = 1./4/pi*_np.cumsum( betx*k2l*dx)
+    self.qp2y = 1./4/pi*_np.cumsum(-bety*k2l*dx)
     self.qpx  = self.qp1x+self.qp2x
     self.qpy  = self.qp1y+self.qp2y
     self.qpp1x=-2*self.qpx
     self.qpp1y=-2*self.qpy
-    self.qpp2x= 1./2/pi*_n.cumsum( k2l*self.ddx*betx)
-    self.qpp2y= 1./2/pi*_n.cumsum(-k2l*self.ddx*bety)
-    self.qpp3x= 1./4/pi*_n.cumsum(-k1l*self.Bx)
-    self.qpp3y= 1./4/pi*_n.cumsum( k1l*self.By)
-    self.qpp4x= 1./4/pi*_n.cumsum( k2l*dx*self.Bx)
-    self.qpp4y= 1./4/pi*_n.cumsum(-k2l*dx*self.By)
+    self.qpp2x= 1./2/pi*_np.cumsum( k2l*self.ddx*betx)
+    self.qpp2y= 1./2/pi*_np.cumsum(-k2l*self.ddx*bety)
+    self.qpp3x= 1./4/pi*_np.cumsum(-k1l*self.Bx)
+    self.qpp3y= 1./4/pi*_np.cumsum( k1l*self.By)
+    self.qpp4x= 1./4/pi*_np.cumsum( k2l*dx*self.Bx)
+    self.qpp4y= 1./4/pi*_np.cumsum(-k2l*dx*self.By)
     self.qppx=self.qpp1x+self.qpp2x+self.qpp3x+self.qpp4x
     self.qppy=self.qpp1y+self.qpp2y+self.qpp3y+self.qpp4y
     qp1x=self.qp1x[-1]
@@ -495,13 +496,13 @@ class optics(dataobj):
     "Interpolate with piecewise linear all columns using a new s coordinate"
     for cname in self.col_names:
       cname=cname.lower()
-      if cname!=sname and _n.isreal(self[cname][0]):
-        self[cname]=_n.interp(snew,self[sname],self[cname])
+      if cname!=sname and _np.isreal(self[cname][0]):
+        self[cname]=_np.interp(snew,self[sname],self[cname])
     self[sname]=snew
     self.name=namenew
   def cycle(t,name,reorder=True):
     if type(name) is str:
-      name=_n.where(t.name==name.upper())[0][0]
+      name=_np.where(t.name==name.upper())[0][0]
     for vn in ['s','mux','muy','phix','phiy']:
       if vn in t:
         v=t[vn]
@@ -513,7 +514,7 @@ class optics(dataobj):
       for vn in t.col_names:
         vn=vn.lower()
         v=t[vn]
-        t[vn]=_n.concatenate([v[name:],v[:name]])
+        t[vn]=_np.concatenate([v[name:],v[:name]])
     return t
   def select(t,a,b,shift=True):
     """select part of the optics *t* and return
@@ -522,9 +523,9 @@ class optics(dataobj):
     is a shift of the s position by *shift*.
     example: oo.select('S.CELL.56.B1','E.CELL.56.B1')"""
     if type(a) is str:
-      a=_n.where(t.name==a.upper())[0][0]
+      a=_np.where(t.name==a.upper())[0][0]
     if type(b) is str:
-      b=_n.where(t.name==b.upper())[0][0]
+      b=_np.where(t.name==b.upper())[0][0]
     data={}
     ln=len(t.name)
     for k,v in t._data.items():
@@ -546,7 +547,7 @@ class optics(dataobj):
     data={}
     for k,v in self._data.items():
       if k.upper() in self.col_names:
-        data[k]=_n.concatenate([v,t[k]])
+        data[k]=_np.concatenate([v,t[k]])
       else:
         data[k]=v
     return  optics(data)
@@ -558,13 +559,13 @@ class optics(dataobj):
         klist.append([k,val])
         self[k]=self.get(k,zeros(len(self.name)))
     for idxerror,name in enumerate(error_table['name']):
-      idxself=_n.where(self.name==name)[0]
+      idxself=_np.where(self.name==name)[0]
       for k,val in klist:
         self[k][idxself]+=val[idxerror]
     return self
   def drvterm(t,m=0,n=0,p=0,q=0):
     dv=t.betx**(abs(m)/2.)*t.bety**(abs(n)/2.)
-    dv=dv*_n.exp(+2j*pi*((m-2*p)*t.mux+(n-2*q)*t.muy))
+    dv=dv*_np.exp(+2j*pi*((m-2*p)*t.mux+(n-2*q)*t.muy))
     return dv
   def errors_kvector(self,i,maxorder=10):
     rng=range(maxorder)
@@ -838,14 +839,14 @@ class qdplot(object):
       self.on_run(self)
 
   def pick(self,event):
-    pos=_n.array([event.mouseevent.x,event.mouseevent.y])
+    pos=_np.array([event.mouseevent.x,event.mouseevent.y])
     name=event.artist.elemname
     prop=event.artist.elemprop
     value=event.artist.elemvalue
     print '\n %s.%s=%s' % (name, prop,value),
 
 #  def button_press(self,mouseevent):
-#    rel=_n.array([mouseevent.x,mouseevent.y])
+#    rel=_np.array([mouseevent.x,mouseevent.y])
 #    dx,dy=self.pickpos/rel
 #    print 'release'
 #    self.t[self.pickname][self.pickprop]*=dy
@@ -864,11 +865,11 @@ class qdplot(object):
         vdname=i
         vd=myvd[self.idx]+vd
     if vd is not 0:
-      m=_n.abs(vd).max()
+      m=_np.abs(vd).max()
       if m>1E-10:
-        c=_n.where(abs(vd) > m*1E-4)[0]
+        c=_np.where(abs(vd) > m*1E-4)[0]
         if len(c)>0:
-          if _n.all(l[c]>0):
+          if _np.all(l[c]>0):
             vd[c]=vd[c]/l[c]
             m=abs(vd[c]).max()
           vd[c]/=m
@@ -906,6 +907,92 @@ def colorrotate():
   c=mycolors.pop(0);mycolors.append(c)
   return c
 
+def find_res_xcross(m,n,q,xs,y1,y2,out):
+  if n!=0:
+    m,n,q,xs,y1,y2=map(float,(m,n,q,xs,y1,y2))
+    ys=(q-m*xs)/n
+    if ys>=y1 and ys<=y2:
+      out.append((xs,ys))
+
+def find_res_ycross(m,n,q,ys,x1,x2,out):
+  if m!=0:
+    m,n,q,ys,y1,y2=map(float,(m,n,q,ys,x1,x2))
+    xs=(q-n*ys)/m
+    if xs>=x1 and xs<=x2:
+      out.append((xs,ys))
+
+def get_res_box(m,n,l=0,qz=0,a=0,b=1,c=0,d=1):
+  """get (x,y) coordinates of resonance lines with
+     m,n,q:   resonance integers with m*qx+n*qy=q
+     l,qz:    order l of resonance sideband with frequency qz
+     a,b,c,d: box parameters=tune range, 
+              explicitly a<qx<b and c<qy<d 
+  """
+  order=int(_np.ceil(abs(m)*max(abs(a),abs(b))+abs(n)*max(abs(c),abs(d))))
+  out=[]
+  for q in range(-order,+order+1):
+    q=q-l*qz
+    points=[]
+    print '%2d*Qx+%2d*Qy=%2d' % (m,n,q)
+    find_res_xcross(m,n,q,a,c,d,points)#find endpoint of line (a,ys) with c<ys<d
+    find_res_xcross(m,n,q,b,c,d,points)#find endpoint of line (b,ys) with c<ys<d
+    find_res_ycross(m,n,q,c,a,b,points)#find endpoint of line (xs,c) with a<xs<b
+    find_res_ycross(m,n,q,d,a,b,points)#find endpoint of line (xs,d) with a<xs<b
+    points=list(set(points))
+    if len(points)>1:
+      out.append(points)
+  return out
+
+def plot_res_box(m,n,l=0,qz=0,a=0,b=1,c=0,d=1,color='b',linestyle='-'):
+  """plot resonance (m,n,l) with sidesband of
+  order l and frequency qz with qx in [a,b]
+  and qy in [c,d]"""
+  points=get_res_box(m,n,l,qz,a,b,c,d)
+  for c in points:
+    x,y=zip(*c)
+    pl.plot(x,y,color=color,linestyle=linestyle)
+
+def plot_res_order_box(o,l=0,qz=0,a=0,b=1,c=0,d=1,c1='b',lst1='-',c2='b',lst2='--',c3='g'):
+  """plot resonance lines for order o and 
+  sidebands of order l and frequency qz
+  which lie in the square described by
+  x=[a,b] and y=[c,d]"""
+  for m,n in getmn(o,'b'):
+    # print 'b%s: m=%d n=%d'%(o,m,n)
+    plot_res_box(m,n,l=0,qz=0,a=a,b=b,c=c,d=d,color=c1,linestyle=lst1)
+    if(l!=0):#sidebands
+      for ll in +abs(l),-abs(l):
+        plot_res_box(m,n,l=ll,qz=qz,a=a,b=b,c=c,d=d,color=c3,linestyle=lst1)
+  for m,n in getmn(o,'a'):
+    # print 'a%s: m=%d n=%d'%(o,m,n)
+    plot_res_box(m,n,l=0,qz=0,a=a,b=b,c=c,d=d,color=c2,linestyle=lst2)
+    if(l!=0):#sidebands
+      for ll in +abs(l),-abs(l):
+        plot_res_box(m,n,l=ll,qz=qz,a=a,b=b,c=c,d=d,color=c3,linestyle=lst2)
+
+def plot_res_order(o,l=0,qz=0,c1='b',lst1='-',c2='b',lst2='--',c3='g'):
+  """plot resonance lines of order o and sidebands
+  of order l and frequency qz in current plot
+  range"""
+  a,b=pl.xlim()
+  c,d=pl.ylim()
+  plot_res_order_box(o,l,qz,a,b,c,d,c1,lst1,c2,lst2,c3)
+  pl.xlim(a,b)
+  pl.ylim(c,d)
+
+def plot_res(m,n,l=0,qz=0,color='b',linestyle='-'):
+  """plot resonance of order (m,n,l) where l is
+  the order of the sideband with frequency qz in
+  the current plot range"""
+  a,b=pl.xlim()
+  c,d=pl.ylim()
+  points=get_res_box(m,n,l,qz,a,b,c,d)
+  for c in points:
+    x,y=zip(*c)
+    pl.plot(x,y,color=color,linestyle=linestyle)
+  pl.xlim(a,b)
+  pl.ylim(c,d)
+
 class Footprint(object):
 #class Footprint(ObjDebug):
   def __init__(self,x,y,tunx,tuny,nsigma,nangles,label='detuning'):
@@ -916,6 +1003,11 @@ class Footprint(object):
     self.tunx=array(tunx)
     self.tuny=array(tuny)
     self.label=label.replace('_',' ')
+  def reshape(self):
+    """return tunes in [sigma,angles]"""
+    qx=self.tunx[1:].reshape(self.nsigma,self.nangles)
+    qy=self.tuny[1:].reshape(self.nsigma,self.nangles)
+    return qx,qy
   def plot_grid(self,nsigma=None,lw=1):
     if nsigma is None:
       nsigma=self.nsigma
@@ -937,22 +1029,22 @@ class Footprint(object):
     for i in range(nsigma):
       ranges.append(slice(1+nangles*i,1+nangles*(i+1)))
     return ranges
-  def plot_footprint(t,nsigma=None,wp=(0.28,0.31),spread=0.01,
+  def plot_footprint(self,nsigma=None,wp=(0.28,0.31),spread=0.01,
       label=None,color=None):
-    ranges=t.mkranges(nsigma)
+    ranges=self.mkranges(nsigma)
     lw=1
     out=[]
     lbl=True
     if label is None:
-      label=t.label
+      label=self.label
     if color is None:
       color=colorrotate()
     for i in ranges:
       if lbl:
-         p=pl.plot(t.tunx[i],t.tuny[i],'-%s'%color,lw=lw,label=label)
+         p=pl.plot(self.tunx[i],self.tuny[i],'-%s'%color,lw=lw,label=label)
          lbl=False
       else:
-         p=pl.plot(t.tunx[i],t.tuny[i],'-%s'%color,lw=lw)
+         p=pl.plot(self.tunx[i],self.tuny[i],'-%s'%color,lw=lw)
       out.append(p[0])
     pl.ylabel('$Q_y$')
     pl.xlabel('$Q_x$')
@@ -964,12 +1056,15 @@ class Footprint(object):
   def triangulate(t):
     tr=matplotlib.delaunay.triangulate.Triangulation(t.tunx,t.tuny)
     for i in tr.triangle_nodes:
-      plot(t.tunx[i],t.tuny[i])
-  def reshape(self):
-    """return tunes in [sigma,angles]"""
-    qx=self.tunx[1:].reshape(self.nsigma,self.nangles)
-    qy=self.tuny[1:].reshape(self.nsigma,self.nangles)
-    return qx,qy
+      pl.plot(t.tunx[i],t.tuny[i])
+  def plot_res(self,m,n,l=0,qz=0,color='b',linestyle='-'):
+    """plot resonance of order (m,n,l) where l is
+    the order of the sideband with frequency qz"""
+    plot_res(m,n,l,qz,color,linestyle)
+  def plot_res_order(self,o,l=0,qz=0,c1='b',lst1='-',c2='b',lst2='--',c3='g'):
+    """plot resonance lines of order o and sidebands
+    of order l and frequency qz"""
+    plot_res_order(o,l,qz,c1,lst1,c2,lst2,c3)
 
 class FootTrack(Footprint):
   def __init__(self,dynapfn,nangles=7,nsigma=12,label='dynap'):
