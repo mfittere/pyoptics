@@ -28,6 +28,8 @@ try:
 except:
   pass
 
+def rms(x):
+  return _np.sqrt((1./len(x))*_np.sum(x**2))
 def rng(x,a,b):
   "return (x<b) & (x>a)"
   return (x<b) & (x>a)
@@ -39,15 +41,20 @@ def errors_getmn(self,errorname='b6'):
   return getmn(order=order,kind=kind)  
 
 def getmn(order,kind='b'):
-  """returns list of (m,n) of * resonances of order o
-     with * = 't': all resonances
-              'a': skew multipoles n=odd
-              'b': normal multipoles n=even
-              's': sum resonances (m>0,n>0), loss of beam
-              'd': difference resonances (m<0,n>0) or (m>0,n<0), exchange between planes
+  """return resonance of order *order* of kind *kind*
+  Parameters:
+  -----------
+  order: order of resonance
+  as list of tuples (m,n) of * resonances of order o
+  kind: 't': all resonances
+        'a': skew multipoles n=odd
+        'b': normal multipoles n=even
+        's': sum resonances (m>0,n>0), loss of beam
+        'd': difference resonances (m<0,n>0) or (m>0,n<0), exchange between planes
+  Returns:
+  --------
+  list of tuples (m,n) with |m|+|n|=order and m*Qx+n*Qy
   """
-
-  """Return resonances given the order and type"""
   out=[]
   if 't' in kind: kind='ab'
   for m in range(0,order+1):
@@ -245,20 +252,44 @@ class optics(dataobj):
     _p.grid(True)
     _p.legend(loc=0)
     self._plot=_p.gcf()
-    return t
+    return self
 
-  def plotbetabeat(self,t1,dp='0.0003',**nargs):
-    _p.title(r"$\rm{Beta beat: 1 - \beta(\delta=%s)/\beta(\delta=0)}$" % dp)
-    _p.ylabel(r"$\Delta\beta/\beta$")
+  def plotbetabeat(self,t0,**nargs):
+    """plot the beta-beat in respect to the
+    reference optics *t0*"""
+    _p.ylabel(r"$\Delta\beta/\beta$ [%]")
     _p.xlabel(r"$s$")
-    _p.plot(self.s,1-t1.betx/self.betx,
+    _p.plot(self.s,(1-t0.betx/self.betx)*100,
             label=r'$\Delta\beta_x/\beta_x$',**nargs)
-    _p.plot(self.s,1-t1.bety/self.bety,
+    _p.plot(self.s,(1-t0.bety/self.bety)*100,
             label=r'$\Delta\beta_y/\beta_y$',**nargs)
     _p.grid(True)
     _p.legend()
     self._plot=_p.gcf()
-    return t
+    pbx=_np.max(abs(1-t0.betx/self.betx))
+    pby=_np.max(abs(1-t0.bety/self.bety))
+    print 'peak delta betax/betax=%4.2f'%(pbx*100)
+    print 'peak delta betay/betay=%4.2f'%(pby*100)
+    return self,pbx,pby
+
+  def plotorbdist(self,t0,**nargs):
+    """plot the orbit distortion compared to
+    the reference optics *t0*"""
+    _p.ylabel(r"$\Delta z$ [mm]")
+    _p.xlabel(r"$s$")
+    _p.plot(self.s,(self.x-t0.x)*1.e3,
+            label=r'$x-x_0$',**nargs)
+    _p.plot(self.s,(self.y-t0.y)*1.e3,
+            label=r'$y-y_0$',**nargs)
+    _p.grid(True)
+    _p.legend()
+    self._plot=_p.gcf()
+    #rms orbit in m
+    dx=rms(self.x-t0.x)
+    dy=rms(self.y-t0.y)
+    print 'rms(dx)=%2.6f mm'%(dx*1.e3)
+    print 'rms(dy)=%2.6f mm'%(dy*1.e3)
+    return self,dx,dy
 
   def plotw(self,lbl='',**nargs):
     _p.title(r"Chromatic function: %s"%lbl)
@@ -930,10 +961,10 @@ def get_res_box(m,n,l=0,qz=0,a=0,b=1,c=0,d=1):
   """
   order=int(_np.ceil(abs(m)*max(abs(a),abs(b))+abs(n)*max(abs(c),abs(d))))
   out=[]
+  mnlq=[]
   for q in range(-order,+order+1):
     q=q-l*qz
     points=[]
-    print '%2d*Qx+%2d*Qy=%2d' % (m,n,q)
     find_res_xcross(m,n,q,a,c,d,points)#find endpoint of line (a,ys) with c<ys<d
     find_res_xcross(m,n,q,b,c,d,points)#find endpoint of line (b,ys) with c<ys<d
     find_res_ycross(m,n,q,c,a,b,points)#find endpoint of line (xs,c) with a<xs<b
@@ -941,20 +972,46 @@ def get_res_box(m,n,l=0,qz=0,a=0,b=1,c=0,d=1):
     points=list(set(points))
     if len(points)>1:
       out.append(points)
-  return out
+      mnlq.append((m,n,l,q+l*qz))
+      if l==0:
+        print '%2d*Qx%+2d*Qy=%2d' % (m,n,q)
+      else:
+        print '%2d*Qx%+2d*Qy+%+2d*Qz=%2d' % (m,n,l,q+l*qz)
+  return out,mnlq
 
 def plot_res_box(m,n,l=0,qz=0,a=0,b=1,c=0,d=1,color='b',linestyle='-'):
   """plot resonance (m,n,l) with sidesband of
   order l and frequency qz with qx in [a,b]
   and qy in [c,d]"""
-  points=get_res_box(m,n,l,qz,a,b,c,d)
-  for c in points:
-    x,y=zip(*c)
+  points,mnlq=get_res_box(m,n,l,qz,a,b,c,d)
+  for p in points:
+    x,y=zip(*p)
     pl.plot(x,y,color=color,linestyle=linestyle)
 
+def annotate_res_order_box(o,l=0,qz=0,a=0,b=1,c=0,d=1):
+  """annotate the resonance lines of order *o*
+  where annotations are (m,n,l). If the same
+  resonance line occurs multiple times, only
+  the first one is plotted"""
+  l_points=[]
+  l_mnlq =[]
+  for m,n in getmn(o,'t'):
+    points,mnlq=get_res_box(m,n,l,qz,a,b,c,d)
+    for pp,oo in zip(points,mnlq):
+      if pp not in l_points:
+        x,y=zip(*pp)
+        (x1,x2)=x
+        (y1,y2)=y
+        (xp,yp)=(x1+(x2-x1)/2.,y1+(y2-y1)/2.)
+        if x2-x1==0: theta=90
+        else: theta=arctan((y2-y1)/(x2-x1))*360/(2*_np.pi)
+        pl.gca().annotate(s='%s'%str(oo[:-1]),xy=(xp,yp),xytext=(xp,yp),xycoords='data',rotation=theta,fontsize=10,color='k',horizontalalignment='center',verticalalignment='center')
+        l_points.append(pp)
+        l_mnlq.append(oo)
+
 def plot_res_order_box(o,l=0,qz=0,a=0,b=1,c=0,d=1,c1='b',lst1='-',c2='b',lst2='--',c3='g'):
-  """plot resonance lines for order o and 
-  sidebands of order l and frequency qz
+  """plot resonance lines up to order o and 
+  sidebands of order l for frequency qz
   which lie in the square described by
   x=[a,b] and y=[c,d]"""
   for m,n in getmn(o,'b'):
@@ -970,13 +1027,14 @@ def plot_res_order_box(o,l=0,qz=0,a=0,b=1,c=0,d=1,c1='b',lst1='-',c2='b',lst2='-
       for ll in +abs(l),-abs(l):
         plot_res_box(m,n,l=ll,qz=qz,a=a,b=b,c=c,d=d,color=c3,linestyle=lst2)
 
-def plot_res_order(o,l=0,qz=0,c1='b',lst1='-',c2='b',lst2='--',c3='g'):
+def plot_res_order(o,l=0,qz=0,c1='b',lst1='-',c2='b',lst2='--',c3='g',annotate=False):
   """plot resonance lines of order o and sidebands
   of order l and frequency qz in current plot
   range"""
   a,b=pl.xlim()
   c,d=pl.ylim()
   plot_res_order_box(o,l,qz,a,b,c,d,c1,lst1,c2,lst2,c3)
+  if annotate: annotate_res_order_box(o,l,qz,a,b,c,d)
   pl.xlim(a,b)
   pl.ylim(c,d)
 
@@ -986,7 +1044,7 @@ def plot_res(m,n,l=0,qz=0,color='b',linestyle='-'):
   the current plot range"""
   a,b=pl.xlim()
   c,d=pl.ylim()
-  points=get_res_box(m,n,l,qz,a,b,c,d)
+  points,order=get_res_box(m,n,l,qz,a,b,c,d)
   for c in points:
     x,y=zip(*c)
     pl.plot(x,y,color=color,linestyle=linestyle)
@@ -1029,8 +1087,16 @@ class Footprint(object):
     for i in range(nsigma):
       ranges.append(slice(1+nangles*i,1+nangles*(i+1)))
     return ranges
-  def plot_footprint(self,nsigma=None,wp=(0.28,0.31),spread=0.01,
-      label=None,color=None):
+  def plot_footprint(self,nsigma=None,wp=(0.28,0.31),spread=0.01,label=None,color=None):
+    """plot footprint
+    
+    Parameters:
+    -----------
+    nsigma: number of sigma shown in footprint
+    wp: working point, default: (0.28,0.31)
+    spread: plot range for tune is [wp-spread,wp+spread]
+    label,color: plot label and plot color
+    """
     ranges=self.mkranges(nsigma)
     lw=1
     out=[]
@@ -1061,12 +1127,20 @@ class Footprint(object):
     """plot resonance of order (m,n,l) where l is
     the order of the sideband with frequency qz"""
     plot_res(m,n,l,qz,color,linestyle)
-  def plot_res_order(self,o,l=0,qz=0,c1='b',lst1='-',c2='b',lst2='--',c3='g'):
+  def plot_res_order(self,o,l=0,qz=0,c1='b',lst1='-',c2='b',lst2='--',c3='g',annotate=False):
     """plot resonance lines of order o and sidebands
     of order l and frequency qz"""
-    plot_res_order(o,l,qz,c1,lst1,c2,lst2,c3)
+    plot_res_order(o,l,qz,c1,lst1,c2,lst2,c3,annotate=annotate)
 
 class FootTrack(Footprint):
+  """class to plot footprints from MADX
+  Parameters:
+  -----------
+  dynapfn: file with coordinates
+  nangles: number of angles for x/y phase space used in tracking
+  nsigma : number of sigmas used
+  label  : plot label
+  """
   def __init__(self,dynapfn,nangles=7,nsigma=12,label='dynap'):
     self.label=label.replace('_',' ')
     t=tfsdata.open(dynapfn)
@@ -1223,8 +1297,3 @@ def twiss2map(bet1,alf1,bet2,alf2,mu):
   r21=((alf1-alf2)*c - (1+alf1*alf2)*s)/b1b2
   r22=b1onb2*(c-alf2*s)
   return [[r11,r12],[r21,r22]]
-
-
-mycolors=list('rcgmb')
-
-

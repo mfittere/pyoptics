@@ -281,6 +281,7 @@ class FootTrack(Footprint):
     self.base=base
     self.label=base.replace('_',' ')
     dynapfn=os.path.join(base,'dynaptune')
+    print dynapfn
     t=tfsdata.open(dynapfn)
     self.tunx=t['tunx']
     self.tuny=t['tuny']
