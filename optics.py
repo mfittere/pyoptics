@@ -1052,6 +1052,10 @@ def plot_res(m,n,l=0,qz=0,color='b',linestyle='-'):
   pl.ylim(c,d)
 
 class Footprint(object):
+  """class to make footprints from MADX.
+  Use derived class FootTrack, e.g.
+  t=FootTrack('dynaptune')
+  """
 #class Footprint(ObjDebug):
   def __init__(self,x,y,tunx,tuny,nsigma,nangles,label='detuning'):
     self.nsigma=nsigma
