@@ -1,3 +1,5 @@
+"""module to plot the squeeze tables"""
+
 import re
 
 import matplotlib.pyplot as pl
@@ -16,6 +18,8 @@ class StrTable(dataobj):
     obj=cls(tfsdata.open(fn))
     return obj
   def get_vars(self,reg):
+    """get list of parameters fulfilling
+    the regular expression *reg*"""
     rxp=re.compile(reg)
     return sorted(l for l in self.keys() if rxp.match(l))
   def get_kq(self,n):
@@ -112,6 +116,21 @@ class StrTable(dataobj):
     pl.ylabel(r'mu [2$\pi$]')
     a,b=pl.xticks()
     pl.xticks(a[::2])
+  def plot_squeeze_diff(self,fn,n1=0,n2=None,x=None,title='comp squeeze'):
+    """compare squeeze with squeeze *fn*. 
+    calls, StrTable.plot_squeeze
+    Parameters:
+    ----------
+    fn: filename of comparison file
+    n1,n2,x,title: as in plot_squeeze"""
+    pl.figure(title,figsize=(16,12))
+    pl.clf()
+    mpl.rcParams['lines.linestyle'] = '-'
+    self.plot_squeeze(title=title)
+    mpl.rcParams['lines.linestyle'] = '--'
+    StrTable.open(fn).plot_squeeze(title=title)
+    mpl.rcParams['lines.linestyle'] = '-'
+
   def plot_squeeze(self,n1=0,n2=None,x=None):
     fig=pl.figure('squeeze',figsize=(16,12))
     fig.canvas.mpl_connect('button_release_event',self.button_press)
