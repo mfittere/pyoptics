@@ -134,7 +134,11 @@ class optics(dataobj):
     for i,name in enumerate(name):
       data=[i] + map(lambda x: self[x][i],fields)
       setattr(self.idx,name,infot(*data))
-
+  def get_idx(self,name=None,count=0):
+    if type(name) is str:
+       return where(self.name==name.upper())[0][count]
+    else:
+       return count
   def pattern(self,regexp):
     c=re.compile(regexp,flags=re.IGNORECASE)
     out=[c.search(n) is not None for i,n in enumerate(self.name)]
@@ -303,7 +307,7 @@ class optics(dataobj):
     self._plot=_p.gcf()
     return self
 
-  def plotap(self,ap=None,nlim=30,ref=7,newfig=True,**nargs):
+  def plotap(t,ap=None,nlim=30,ref=7,newfig=True,eref=None,**nargs):
     """plot n1 versus s
     self  : optics e.g. optics.open('twiss_ir5b1.tfs')
     ap : corresponding aperture file e.g. optics.open('ap_ir5b1.tfs')
@@ -312,14 +316,17 @@ class optics(dataobj):
     if ap is None:
         apfn=self.filename.replace('twiss','ap')
         ap=optics.open(apfn)
-    self.ss=ap.s
-    self.n1=ap.n1
-    self.plot(x='ss',yl='n1',newfig=newfig,**nargs)
-    p=self._plot #plot is stored in _plot
-    p.figure.gca().plot(self.ss,self.ss*0+ref)
+    if eref is not None:
+       ap.s-=ap.s[ap//eref]
+       t.s-=t.s[t//eref]
+    t.ss=ap.s
+    t.n1=ap.n1
+    t=t.plot(x='ss',yl='n1',newfig=newfig,**nargs)
+    p=t._plot
+    p.figure.gca().plot(t.ss,t.ss*0+ref)
     p.figure.gca().set_ylim(0,nlim)
     p.figure.canvas.draw()
-    return self
+    return t
 
   def mk_betamax(self):
     self.betxmax=zeros_like(self.betx)
