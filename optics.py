@@ -1118,10 +1118,10 @@ class Footprint(object):
       color=colorrotate()
     for i in ranges:
       if lbl:
-         p=pl.plot(self.tunx[i],self.tuny[i],'-%s'%color,lw=lw,label=label)
+         p=pl.plot(self.tunx[i],self.tuny[i],'-',color='%s'%color,lw=lw,label=label)
          lbl=False
       else:
-         p=pl.plot(self.tunx[i],self.tuny[i],'-%s'%color,lw=lw)
+         p=pl.plot(self.tunx[i],self.tuny[i],'-',color='%s'%color,lw=lw)
       out.append(p[0])
     pl.ylabel('$Q_y$')
     pl.xlabel('$Q_x$')
